@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { authToken } from '$lib/stores';
+	import { AuthAPI } from '$lib/apiService';
+	import { authToken } from '$lib/stores/auth';
 
+	const authAPI = new AuthAPI();
 	let password = '';
 	let isAuthenticated = false;
 	let error = '';
@@ -9,32 +11,20 @@
 	onMount(async () => {
 		if ($authToken) {
 			try {
-				const response = await validateToken($authToken);
-				if (response.ok) {
-					isAuthenticated = true;
-				} else {
+				const response = await authAPI.validateToken($authToken);
+				isAuthenticated = response.ok;
+				if (!response.ok) {
 					authToken.set('');
 				}
-			} catch (err) {
+			} catch {
 				authToken.set('');
 			}
 		}
 	});
 
-	async function validateToken(token: string) {
-		return fetch(
-			'https://dzv1rhjtsh.execute-api.us-west-2.amazonaws.com/prod/validate',
-			{
-				headers: {
-					'Authorization': token
-				}
-			}
-		);
-	}
-
 	async function handleSubmit() {
 		try {
-			const response = await validateToken(password);
+			const response = await authAPI.validateToken(password);
 
 			if (response.ok) {
 				authToken.set(password);
@@ -43,11 +33,12 @@
 			} else {
 				error = 'Invalid password';
 			}
-		} catch (err) {
+		} catch {
 			error = 'Error validating password';
 		}
 	}
 </script>
+
 
 {#if !isAuthenticated}
 	<div class="min-h-screen bg-gray-900 text-green-400 font-mono flex items-center justify-center">
